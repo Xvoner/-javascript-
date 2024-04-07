@@ -1,0 +1,309 @@
+﻿<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="UTF-8">
+		<title></title>
+        <style>
+            .container
+            {
+                margin-left: 30%;
+                margin-top: 0%;
+                width: 400px;
+                height: 800px;
+                background: black;
+                position: relative;
+                overflow: hidden;
+            }
+            .basecube
+            {
+                width: 40px;
+                height: 40px;
+                background: forestgreen;
+                position: absolute;
+            }
+            .stopmovecube
+            {
+                width: 40px;
+                height: 40px;
+                background-color:hotpink;
+                position: absolute;
+            }
+            .moveit
+            {
+                width: 60px;
+                height: 40px;
+                border-radius: 20px;
+                font-size: 20px;
+                margin-left: 40px;
+            }
+            .overit
+            {
+                width: 100px;
+                width: 100px;
+                border-radius: 50px;
+                font-size: 40px;
+                margin-left: 100px;
+            }
+        </style>
+	</head>
+	<body onload="begin();gametime=setInterval(one,1000)">
+        <div class="container" id="containerid">
+
+        </div>
+        <button class="moveit" onclick="move(0,-1)">↑</button>
+        <button class="moveit" onclick="move(0,1)">↓</button>
+        <button class="moveit" onclick="move(-1,0)">←</button>
+        <button class="moveit" onclick="move(1,0)">→</button>
+        <button class="overit" onclick="over()">over</button>
+        <script>
+            //一个网格单位
+            onebit=40
+
+            //网格长宽  网格单位
+            widthline=10;
+            highline=20;
+            //物体已经移动的横纵值，单位制，当物体落到其他物体上的时候我们还需要还原这些数据的初始值
+            hasmovex=0;
+            hasmovey=0;
+            //正在移动物体内的每个小方块与已经停止物体内的小方块数量
+            somenewdiv=document.getElementsByClassName("basecube")
+            havestopdiv=document.getElementsByClassName("stopmovecube")
+            //是否执行消行方法
+            canbreak=false;
+            //各种形状初始时候的位置，不要改变他们,记录着由几个方块构成，每个方块的初始位置
+            allshapes=
+            [
+                {
+                    0:{xline:6,yline:-1},
+                    1:{xline:4,yline:-1},
+                    2:{xline:5,yline:-1},
+                    3:{xline:6,yline:0}
+                },
+                {
+                    0:{xline:5,yline:-1},
+                    1:{xline:6,yline:-1},
+                    2:{xline:4,yline:-1},
+                    3:{xline:3,yline:-1},
+                    4:{xline:7,yline:-1}
+                },
+                {
+                    0:{xline:6,yline:-1},
+                    1:{xline:5,yline:-1},
+                    2:{xline:6,yline:0},
+                    3:{xline:5,yline:0}
+                },
+                {
+                    0:{xline:5,yline:0},
+                    1:{xline:5,yline:-1},
+                    2:{xline:6,yline:0},
+                    3:{xline:6,yline:1}
+                },
+                {
+                    0:{xline:4,yline:-1},
+                    1:{xline:4,yline:0},
+                    2:{xline:5,yline:-1},
+                    3:{xline:6,yline:-1}
+                }
+            ]
+            //停止方块的位置信息记录
+            stopcubespos=[] 
+            function one()
+            {
+                move(0,1)
+            }
+            function begin()  //主程序入口
+            {
+                // 初始化数据
+                hasmovex=0;
+                hasmovey=0;
+                //生成此次的随机数
+                whichshape=parseInt(Math.random()*5)
+
+                for(i in allshapes[whichshape])
+                {
+                    var newdiv=document.createElement("div");
+                    newdiv.className="basecube";
+                    document.getElementById("containerid").appendChild(newdiv);
+                }
+                setbaseposition();
+            }
+            function setbaseposition() //设置物体初始位置
+            {
+                for(i=0;i<somenewdiv.length;i++)
+                {
+                    somenewdiv[i].style.top=allshapes[whichshape][i].yline*onebit+"px";
+                    somenewdiv[i].style.left=allshapes[whichshape][i].xline*onebit+"px";
+                }
+            }
+            function setnewposition() //设置物体移动后的位置
+            {
+                for(i=0;i<somenewdiv.length;i++)  
+                {
+                    somenewdiv[i].style.top=parseInt(allshapes[whichshape][i].yline*onebit || 0)+hasmovey*onebit+"px";
+                    somenewdiv[i].style.left=parseInt(allshapes[whichshape][i].xline*onebit || 0)+hasmovex*onebit+"px";
+                }
+            }
+
+            function move(x,y)//物体移动
+            {
+                hasmovex+=x;
+                hasmovey+=y;
+                
+                if(isoverworld())
+                {
+                    hasmovex-=x
+                    hasmovey-=y
+                    if(y!=0)     //如果是向下移动到其他物体上的话，那么执行停止运动的方法
+                    {
+                        stopmove()
+                    }
+                }
+                setnewposition()
+            }
+            function isoverworld()  //检测是否越界或者碰到其他物体的方法
+            {
+                for(i=0;i<somenewdiv.length;i++)  //检测是否越界
+                {
+                    if(hasmovex+allshapes[whichshape][i].xline<0 || hasmovex+allshapes[whichshape][i].xline>=10 || hasmovey+allshapes[whichshape][i].yline>=20)
+                    {
+                        return true;
+                    }
+                }
+
+                for(i=0;i<somenewdiv.length;i++)  // 检测是否与静止体发生碰撞
+                {
+                    if(stopcubespos.includes((hasmovex+allshapes[whichshape][i].xline)+"..."+(allshapes[whichshape][i].yline+hasmovey))) //如果物体将要碰到其他物体的侧面的时候
+                    {
+                        return true;
+                    }
+                }
+                return false
+            }
+
+            function over() //让物体旋转,利用初始化位置的相对位置的改变来造成旋转效果
+            {
+                canover=true;
+                if(whichshape!=2)  //正方形不能旋转
+                {
+                    for(i=1;i<somenewdiv.length;i++)
+                    {
+                        //转换后的坐标
+                        newypos=allshapes[whichshape][0].yline-(allshapes[whichshape][i].xline-allshapes[whichshape][0].xline)
+                        newxpos=allshapes[whichshape][0].xline+allshapes[whichshape][i].yline-allshapes[whichshape][0].yline
+                        allshapes[whichshape][i].yline=newypos
+                        allshapes[whichshape][i].xline=newxpos
+                    }
+                    if(isoverworld())//如果不能旋转就反方向转回来
+                    {
+                        for(i=1;i<somenewdiv.length;i++)
+                        {
+                            newypos=allshapes[whichshape][0].yline+(allshapes[whichshape][i].xline-allshapes[whichshape][0].xline)
+                            newxpos=allshapes[whichshape][0].xline+allshapes[whichshape][0].yline-allshapes[whichshape][i].yline
+                            allshapes[whichshape][i].yline=newypos
+                            allshapes[whichshape][i].xline=newxpos  
+                        }
+                    }
+                    setnewposition()
+                }
+                
+            }
+            function stopmove() //变色固定
+            {
+                if(gameover())
+                {
+                    alert("游戏失败")   
+                }
+                else
+                {
+                    for(i=somenewdiv.length-1;i>=0;i--)
+                    {
+                        stopcubespos[stopcubespos.length]=(hasmovex+allshapes[whichshape][i].xline)+"..."+(hasmovey+allshapes[whichshape][i].yline) //把位置信息记录到数组里，方便调用资源
+                        somenewdiv[i].className="stopmovecube"
+                    }
+                    checkfull()
+                    begin()
+                }
+                
+            }
+            function checkfull()     //检查行满
+            {
+                willdownnumber=[]    //清除行的 一次性信息记录
+                for(i=0,sum=0;i<highline;i++)
+                {
+                    for(j=0;j<stopcubespos.length;j++)
+                    {
+                        if(i==parseInt(stopcubespos[j].split("...")[1]))
+                        {
+                            sum++
+                        }
+                    }
+                    if(sum==10)
+                    {
+                        canbreak=true;  //只有存在满行的情况才能执行末尾的悬浮下落事件
+                        willdownnumber[willdownnumber.length]=i    //记录消掉的当前行数
+                        clearoneline(i)   //满10个清除当前行
+                    }
+                    sum=0
+                }
+                setnewstopcubeposition()  //先把清除后悬浮状态的小方块绘制出来
+                if(canbreak)
+                {
+                    willdown()  
+                    setTimeout(setnewstopcubeposition,1000)
+                    canbreak=false;
+                    willdownnumber=[]   //把记录消除行的信息初始化，以便记录下一次
+                }
+            }
+
+            function clearoneline(y)       //删除当前一行物体
+            {
+                for(i=stopcubespos.length-1;i>=0;i--)       //数组数据里删除10个坐标信息
+                {
+                    if(parseInt(stopcubespos[i].split("...")[1])==y)
+                    {
+                        stopcubespos.splice(i,1)
+                    }
+                }
+                for(i=0;i<10;i++)    //随便删除10个实体
+                {
+                    document.getElementById("containerid").removeChild(havestopdiv[0])
+                }
+            }
+
+            function setnewstopcubeposition()      //设置停止体坐标
+            {
+                for(i=0;i<stopcubespos.length;i++)
+                {
+                    havestopdiv[i].style.left=parseInt(stopcubespos[i].split("...")[0])*onebit+"px"
+                    havestopdiv[i].style.top=parseInt(stopcubespos[i].split("...")[1])*onebit+"px"
+                }
+            }
+            function willdown()     //整理悬浮1秒结束后停止体的坐标信息
+            {
+                willdownnumber.forEach(function(ypos)
+                {
+                    stopcubespos.forEach(function(block)
+                    {
+                        if(parseInt(block.split("...")[1])<ypos)    //小于空行坐标数据的纵坐标都+1
+                        {
+                            stopcubespos[stopcubespos.indexOf(block)]=parseInt(block.split("...")[0])+"..."+(parseInt(block.split("...")[1])+1);
+                        }
+                    })
+                })
+            }
+
+            function gameover()
+            {
+                for(i=0;i<somenewdiv.length;i++)
+                {
+                    if(parseInt(somenewdiv[i].style.top)<=0)
+                    {
+                        clearTimeout(gametime)
+                        return true;
+                        break;
+                    }
+                }
+            }
+        </script>
+	</body>
+</html>
